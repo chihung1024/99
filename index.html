@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>乘法魔法島 2.0</title>
+    <style>
+        /* --- 全局樣式 & 字體 --- */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        :root {
+            --bg-color: #87CEEB; /* 天藍色 */
+            --btn-color: #ff8c42;   /* 橘色按鈕 */
+            --btn-hover-color: #ff6b1b;
+            --text-color: #3a3a3a;
+            --correct-color: #2ecc71; /* 綠色 */
+            --incorrect-color: #e74c3c; /* 紅色 */
+            --special-btn-color: #3498db; /* 藍色特殊按鈕 */
+            --special-btn-hover: #2980b9;
+            --danger-btn-color: #e74c3c; /* 紅色特殊按鈕 */
+            --danger-btn-hover: #c0392b;
+            --skill-btn-color: #9b59b6; /* 紫色技能按鈕 */
+            --skill-btn-hover: #8e44ad;
+            --final-boss-color: #4a148c; /* 紫黑色BOSS按鈕 */
+            --final-boss-hover: #38006b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* --- 主要畫面容器 --- */
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .screen.active {
+            display: flex;
+        }
+        
+        /* --- 按鈕樣式 --- */
+        .btn {
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            background-color: var(--btn-color);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            z-index: 10;
+        }
+
+        /* --- 歡迎畫面 --- */
+        #welcome-screen {
+            background: linear-gradient(to top, #89cff0, #aee8ff);
+        }
+        #welcome-screen h1 { font-size: 3rem; color: #005a8d; text-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        #welcome-screen p { font-size: 1.2rem; }
+
+        /* --- 地圖畫面 --- */
+        #map-screen {
+            justify-content: flex-start;
+            padding-top: 30px;
+            overflow-y: auto;
+        }
+        .map-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 20px 0 15px 0;
+        }
+        .map-grid {
+            display: grid;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        #practice-grid {
+             grid-template-columns: repeat(3, 1fr);
+             max-width: 360px;
+             margin: auto;
+        }
+        #playground-grid {
+             display: flex;
+             flex-wrap: wrap;
+             justify-content: center;
+        }
+
+        .map-btn {
+            width: 100px;
+            height: 100px;
+            font-size: 1.8rem;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .map-btn span { font-size: 0.8rem; font-weight: 400; margin-top: 5px; }
+        .map-btn.locked {
+            background-color: #BDBDBD;
+            color: #757575;
+            cursor: not-allowed;
+        }
+        .map-btn.locked .lock-icon {
+            display: block;
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+        .map-btn .lock-icon { display: none; }
+        .map-btn.special { background-color: var(--special-btn-color); }
+        .map-btn.special:hover { background-color: var(--special-btn-hover); }
+        .map-btn.danger { background-color: var(--danger-btn-color); }
+        .map-btn.danger:hover { background-color: var(--danger-btn-hover); }
+        
+        .map-btn.final-boss {
+            width: calc(100% - 30px);
+            max-width: 330px;
+            margin-top: 15px;
+            background: var(--final-boss-color);
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        .map-btn.final-boss:hover { background-color: var(--final-boss-hover); }
+        .map-btn.final-boss.locked {
+            background: #616161;
+            color: #e0e0e0;
+            animation: pulse-dark 2.5s infinite ease-in-out;
+        }
+        .map-btn.final-boss.locked:hover { background: #424242; }
+
+
+        /* --- 遊戲畫面通用 --- */
+        .game-ui-container {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+        .question-container {
+            background-color: rgba(255,255,255,0.8);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-height: 80px;
+            transition: box-shadow 0.3s;
+        }
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .option-btn {
+            width: 100%;
+            height: 90px;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+        }
+
+        /* --- 閃電挑戰畫面 --- */
+        #speed-challenge-screen { background: linear-gradient(to top, #f6d365, #fda085); }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 15px;
+        }
+        .game-header .info-box {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+
+        /* --- 戰鬥畫面通用 --- */
+        .battle-screen { background: linear-gradient(to top, #7f7fd5, #86a8e7, #91eae4); }
+        #battle-screen.final-boss-bg { background: linear-gradient(to top, #434343, #000000); }
+        .battle-arena {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 10px;
+        }
+        .character-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .character {
+            font-size: clamp(4rem, 20vw, 6rem);
+            transition: transform 0.2s;
+        }
+        .hp-bar-container {
+            width: 120px;
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            border: 2px solid #555;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .hp-bar {
+            height: 100%;
+            width: 100%;
+            background-color: var(--correct-color);
+            border-radius: 8px;
+            transition: width 0.5s ease-in-out;
+        }
+        .monster-hp-bar { background-color: var(--incorrect-color); }
+        
+        .hp-grid-container {
+            display: grid;
+            gap: 3px;
+            border: 2px solid #555;
+            padding: 3px;
+            background: #333;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        #boss-hp-grid-container {
+            width: 250px;
+            height: 42px;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+        #player-hp-grid-container {
+            width: 125px;
+            height: 20px;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: 1fr;
+        }
+        .hp-segment {
+            transition: background-color 0.5s;
+            border-radius: 2px;
+        }
+        #boss-hp-grid-container .hp-segment { background-color: var(--incorrect-color); }
+        #player-hp-grid-container .hp-segment { background-color: var(--correct-color); }
+        .hp-segment.lost {
+            background-color: #555;
+        }
+
+        .damage-popup {
+            position: absolute;
+            top: 0;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--incorrect-color);
+            animation: float-up 1s ease-out forwards;
+        }
+        .battle-info {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: rgba(0,0,0,0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: var(--text-color);
+        }
+        #battle-screen.final-boss-bg .battle-info { color: white; }
+
+        #combo-meter {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 3px #000;
+        }
+        #skill-btn {
+            background-color: var(--skill-btn-color);
+            position: absolute;
+            bottom: -70px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+        }
+        #skill-btn.ready {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+
+        /* --- Modal 彈出視窗 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center;
+            align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
+            transform: scale(0.8); transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-content h2 { margin-top: 0; font-size: 2rem; }
+        .modal-content p { font-size: 1.5rem; margin: 15px 0; }
+        .modal-content .btn { margin-top: 15px; }
+
+        /* --- 動畫 --- */
+        @keyframes tada { from { transform: scale3d(1, 1, 1); } 10%, 20% { transform: scale3d(.9, .9, .9) rotate3d(0, 0, 1, -3deg); } 30%, 50%, 70%, 90% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg); } 40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); } to { transform: scale3d(1, 1, 1); } }
+        @keyframes shake { from, to { transform: translate3d(0, 0, 0); } 10%, 30%, 50%, 70%, 90% { transform: translate3d(-10px, 0, 0); } 20%, 40%, 60%, 80% { transform: translate3d(10px, 0, 0); } }
+        @keyframes attack { 0% { transform: scale(1); } 50% { transform: scale(1.3) translateX(15px); } 100% { transform: scale(1); } }
+        @keyframes special-attack { 0% { transform: scale(1); } 25% { transform: scale(1.5) rotate(-15deg); } 50% { transform: scale(1.2) rotate(15deg); } 75% { transform: scale(1.5) rotate(0deg); } 100% { transform: scale(1); } }
+        @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(155, 89, 182, 0); } 100% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0); } }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } 50% { box-shadow: 0 0 20px 10px #fdfdfe, 0 0 20px 10px #52057b; } 100% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } }
+        @keyframes pulse-dark { 0% { box-shadow: 0 0 0 0 rgba(145, 145, 145, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(145, 145, 145, 0); } 100% { box-shadow: 0 0 0 0 rgba(145, 145, 145, 0); } }
+    </style>
+</head>
+<body>
+
+    <!-- 歡迎畫面 -->
+    <div id="welcome-screen" class="screen active">
+        <div>
+            <h1>乘法魔法島 2.0</h1>
+            <p>準備好迎接全新的挑戰了嗎？</p>
+            <button id="start-adventure-btn" class="btn">開始冒險</button>
+        </div>
+    </div>
+
+    <!-- 地圖畫面 -->
+    <div id="map-screen" class="screen">
+        <h2 class="map-title">🏞️ 修行山路 (基礎練習)</h2>
+        <div id="practice-grid" class="map-grid"></div>
+        
+        <h2 class="map-title">🎢 冒險遊樂場 (趣味遊戲)</h2>
+        <div id="playground-grid" class="map-grid"></div>
+    </div>
+
+    <!-- 關卡挑戰畫面 -->
+    <div id="practice-screen" class="screen">
+        <button class="btn back-btn" id="back-to-map-practice">返回地圖</button>
+        <div class="game-ui-container">
+            <h2 id="practice-title" style="font-size: 2rem;"></h2>
+            <div id="practice-question" class="question-container"></div>
+            <div id="practice-options" class="options-container"></div>
+            <p id="practice-feedback" style="font-size: 1.2rem; height: 20px; margin-top: 15px;"></p>
+        </div>
+    </div>
+    
+    <!-- 閃電挑戰畫面 -->
+    <div id="speed-challenge-screen" class="screen">
+        <button class="btn back-btn" id="back-to-map-speed">返回地圖</button>
+        <div class="game-ui-container">
+            <div class="game-header">
+                <div id="speed-timer" class="info-box">時間: 60</div>
+                <div id="speed-score" class="info-box">分數: 0</div>
+            </div>
+            <div id="speed-question" class="question-container"></div>
+            <div id="speed-options" class="options-container"></div>
+        </div>
+    </div>
+
+    <!-- 戰鬥畫面 (怪物 & Boss 共用) -->
+    <div id="battle-screen" class="screen battle-screen">
+        <button class="btn back-btn" id="back-to-map-battle">返回地圖</button>
+        <div id="battle-stage-info" class="battle-info"></div>
+        <div class="battle-arena">
+            <div class="character-container" id="player-container">
+                <div id="player-char" class="character">🐵</div>
+                <div id="player-hp-container">
+                    <div class="hp-bar-container" id="player-hp-bar-container" style="display: none;">
+                        <div id="player-hp-bar" class="hp-bar"></div>
+                    </div>
+                    <div class="hp-grid-container" id="player-hp-grid-container">
+                        <!-- Player HP segments will be generated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="character-container" id="enemy-container">
+                <div id="enemy-char" class="character"></div>
+                <div id="enemy-hp-container">
+                    <div class="hp-bar-container" id="monster-hp-bar-container">
+                        <div id="monster-hp-bar" class="hp-bar monster-hp-bar"></div>
+                    </div>
+                    <div class="hp-grid-container" id="boss-hp-grid-container">
+                        <!-- Boss HP segments will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="game-ui-container">
+            <div id="combo-meter"></div>
+            <div id="battle-question" class="question-container"></div>
+            <div id="battle-options" class="options-container"></div>
+            <button id="skill-btn" class="btn">✨ 必殺技！</button>
+        </div>
+    </div>
+
+    <!-- 結果彈出視窗 -->
+    <div id="result-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-score"></p>
+            <p id="modal-highscore"></p>
+            <button id="modal-close-btn" class="btn">返回地圖</button>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 遊戲設定 ---
+    const GAME_DATA_KEY = 'multiplicationIslandData_v10'; // 更新版本
+    const practiceLevels = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const speedChallengeUnlockRequirement = [2, 5, 10];
+    const monsterBattleUnlockRequirement = [3, 4];
+    const MONSTERS = [
+        { name: '史萊姆', emoji: '🟢', hp: 80 },
+        { name: '獨眼怪', emoji: '👿', hp: 100 },
+        { name: '石頭人', emoji: '🗿', hp: 120 }
+    ];
+    const FINAL_BOSS = { name: '九九大魔王', emoji: '😈', hp: 20 };
+    const PLAYER_MAX_HP = 5;
+
+    // --- 元素獲取 ---
+    const screens = {
+        welcome: document.getElementById('welcome-screen'),
+        map: document.getElementById('map-screen'),
+        practice: document.getElementById('practice-screen'),
+        speedChallenge: document.getElementById('speed-challenge-screen'),
+        battle: document.getElementById('battle-screen'),
+    };
+    const modal = {
+        overlay: document.getElementById('result-modal'),
+        title: document.getElementById('modal-title'),
+        score: document.getElementById('modal-score'),
+        highscore: document.getElementById('modal-highscore'),
+        closeBtn: document.getElementById('modal-close-btn'),
+    };
+    
+    // --- 遊戲狀態變數 ---
+    let gameData = {};
+    let currentQuestion = {};
+    let speedInterval;
+    let battleState = {};
+    let practiceState = {
+        level: 0,
+        questionPool: [],
+        correctAnswersCount: 0,
+        totalCorrectNeeded: 5
+    };
+
+    // --- 初始化 & 資料讀取 ---
+    function loadGameData() {
+        const savedData = localStorage.getItem(GAME_DATA_KEY);
+        gameData = savedData ? JSON.parse(savedData) : {
+            completedLevels: [],
+            speedChallengeHighscore: 0,
+        };
+    }
+
+    function saveGameData() {
+        localStorage.setItem(GAME_DATA_KEY, JSON.stringify(gameData));
+    }
+
+    // --- 畫面切換 ---
+    function showScreen(screenId) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenId].classList.add('active');
+    }
+
+    // --- 地圖生成 ---
+    function generateMap() {
+        const practiceGrid = document.getElementById('practice-grid');
+        const playgroundGrid = document.getElementById('playground-grid');
+        practiceGrid.innerHTML = '';
+        playgroundGrid.innerHTML = '';
+
+        practiceLevels.forEach(levelNum => {
+            const btn = document.createElement('button');
+            btn.className = 'btn map-btn';
+            if (gameData.completedLevels.includes(levelNum)) {
+                btn.style.backgroundColor = 'var(--correct-color)';
+            }
+            btn.innerHTML = `${levelNum}<span>x${levelNum} 的挑戰</span>`;
+            btn.addEventListener('click', () => startPractice(levelNum));
+            practiceGrid.appendChild(btn);
+        });
+
+        const speedUnlocked = speedChallengeUnlockRequirement.every(l => gameData.completedLevels.includes(l));
+        const speedBtn = document.createElement('button');
+        speedBtn.className = 'btn map-btn special';
+        speedBtn.innerHTML = `⚡️<span>閃電挑戰</span><div class="lock-icon">🔒</div>`;
+        if (speedUnlocked) {
+            speedBtn.addEventListener('click', startSpeedChallenge);
+        } else {
+            speedBtn.classList.add('locked');
+            speedBtn.title = `請先完成 x${speedChallengeUnlockRequirement.join(', x')} 的挑戰來解鎖！`;
+        }
+        playgroundGrid.appendChild(speedBtn);
+        
+        const monsterUnlocked = monsterBattleUnlockRequirement.every(l => gameData.completedLevels.includes(l));
+        const monsterBtn = document.createElement('button');
+        monsterBtn.className = 'btn map-btn danger';
+        monsterBtn.innerHTML = `👹<span>怪物大作戰</span><div class="lock-icon">🔒</div>`;
+        if (monsterUnlocked) {
+            monsterBtn.addEventListener('click', startMonsterBattle);
+        } else {
+            monsterBtn.classList.add('locked');
+            monsterBtn.title = `請先完成 x${monsterBattleUnlockRequirement.join(', x')} 的挑戰來解鎖！`;
+        }
+        playgroundGrid.appendChild(monsterBtn);
+
+        const finalBossUnlocked = practiceLevels.every(l => gameData.completedLevels.includes(l));
+        const bossBtn = document.createElement('button');
+        bossBtn.className = 'btn map-btn final-boss';
+        if (finalBossUnlocked) {
+            bossBtn.innerHTML = `😈<span>終極挑戰</span>`;
+            bossBtn.addEventListener('click', startFinalBossBattle);
+        } else {
+            bossBtn.classList.add('locked');
+            bossBtn.innerHTML = `???<span>完成所有基礎練習以解鎖</span>`;
+            bossBtn.title = '完成所有九宮格挑戰來解鎖最終魔王！';
+        }
+        playgroundGrid.appendChild(bossBtn);
+    }
+
+    // --- 通用題目生成邏輯 ---
+    function generateQuestionOptions(question, isReverse = false) {
+        const answer = isReverse ? `${question.num1} x ${question.num2}` : question.num1 * question.num2;
+        const options = new Set([answer]);
+        while (options.size < 3) {
+            if (isReverse) {
+                const wrongNum1 = Math.floor(Math.random() * 9) + 2;
+                const wrongNum2 = Math.floor(Math.random() * 9) + 1;
+                if (wrongNum1 * wrongNum2 !== question.answer) {
+                    options.add(`${wrongNum1} x ${wrongNum2}`);
+                }
+            } else {
+                const randomFactor = Math.floor(Math.random() * 5) + 1;
+                const wrongAnswer = Math.random() > 0.5 ? 
+                    question.answer + randomFactor : 
+                    Math.max(0, question.answer - randomFactor);
+                if (wrongAnswer !== question.answer && wrongAnswer > 0) {
+                    options.add(wrongAnswer);
+                }
+            }
+        }
+        return Array.from(options).sort(() => Math.random() - 0.5);
+    }
+    
+    function renderOptions(container, options, answerCallback) {
+        container.innerHTML = '';
+        options.forEach(optionValue => {
+            const btn = document.createElement('button');
+            btn.className = 'btn option-btn';
+            btn.textContent = optionValue;
+            btn.onclick = () => answerCallback(optionValue, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    // --- 關卡挑戰模式 ---
+    const practiceUI = {
+        title: document.getElementById('practice-title'),
+        question: document.getElementById('practice-question'),
+        options: document.getElementById('practice-options'),
+        feedback: document.getElementById('practice-feedback'),
+    };
+
+    function startPractice(level) {
+        practiceState.level = level;
+        practiceState.correctAnswersCount = 0;
+        practiceState.questionPool = [];
+        for (let i = 1; i <= 9; i++) {
+            practiceState.questionPool.push({ num1: level, num2: i });
+        }
+        practiceState.questionPool.sort(() => Math.random() - 0.5);
+        practiceUI.title.textContent = `x${level} 的挑戰`;
+        showScreen('practice');
+        nextPracticeQuestion();
+    }
+
+    function nextPracticeQuestion() {
+        if (practiceState.correctAnswersCount >= practiceState.totalCorrectNeeded) {
+            finishPractice();
+            return;
+        }
+        practiceUI.feedback.textContent = `答對 ${practiceState.correctAnswersCount} / ${practiceState.totalCorrectNeeded} 題`;
+        if (practiceState.questionPool.length === 0) {
+             for (let i = 1; i <= 9; i++) {
+                practiceState.questionPool.push({ num1: practiceState.level, num2: i });
+            }
+        }
+        const questionIndex = Math.floor(Math.random() * practiceState.questionPool.length);
+        const questionToAsk = practiceState.questionPool.splice(questionIndex, 1)[0];
+        currentQuestion = { num1: questionToAsk.num1, num2: questionToAsk.num2, answer: questionToAsk.num1 * questionToAsk.num2 };
+        const questionText = `${currentQuestion.num1} x ${currentQuestion.num2} = ?`;
+        const shuffledOptions = generateQuestionOptions(currentQuestion);
+        practiceUI.question.textContent = questionText;
+        renderOptions(practiceUI.options, shuffledOptions, checkPracticeAnswer);
+    }
+
+    function checkPracticeAnswer(selectedValue, btnElement) {
+        practiceUI.options.style.pointerEvents = 'none';
+        const isCorrect = parseInt(selectedValue) === currentQuestion.answer;
+        if (isCorrect) {
+            practiceState.correctAnswersCount++;
+            btnElement.style.backgroundColor = 'var(--correct-color)';
+            practiceUI.question.classList.add('feedback-correct');
+        } else {
+            practiceState.correctAnswersCount = Math.max(0, practiceState.correctAnswersCount - 1);
+            btnElement.style.backgroundColor = 'var(--incorrect-color)';
+            practiceUI.question.classList.add('feedback-incorrect');
+        }
+        setTimeout(() => {
+            practiceUI.question.classList.remove('feedback-correct', 'feedback-incorrect');
+            practiceUI.options.style.pointerEvents = 'auto';
+            nextPracticeQuestion();
+        }, 1200);
+    }
+
+    function finishPractice() {
+        if (!gameData.completedLevels.includes(practiceState.level)) {
+            gameData.completedLevels.push(practiceState.level);
+            saveGameData();
+        }
+        showResultModal('挑戰成功！', `你累積答對了 ${practiceState.totalCorrectNeeded} 題！`, `已完成關卡: ${gameData.completedLevels.length}/${practiceLevels.length}`);
+    }
+
+    // --- 閃電挑戰模式 ---
+    const speedUI = {
+        timer: document.getElementById('speed-timer'),
+        score: document.getElementById('speed-score'),
+        question: document.getElementById('speed-question'),
+        options: document.getElementById('speed-options'),
+    };
+    
+    function startSpeedChallenge() {
+        let speedUnlockedLevels = gameData.completedLevels.length > 0 ? gameData.completedLevels : [2, 5, 10];
+        let speedScore = 0;
+        let speedTimer = 60;
+        speedUI.score.textContent = `分數: 0`;
+        speedUI.timer.textContent = `時間: 60`;
+        showScreen('speedChallenge');
+        
+        const nextSpeedQuestion = () => {
+            const num1 = speedUnlockedLevels[Math.floor(Math.random() * speedUnlockedLevels.length)];
+            const num2 = Math.floor(Math.random() * 9) + 1;
+            currentQuestion = { num1, num2, answer: num1 * num2 };
+            const options = generateQuestionOptions(currentQuestion);
+            speedUI.question.textContent = `${num1} x ${num2} = ?`;
+            renderOptions(speedUI.options, options, checkSpeedAnswer);
+        };
+        
+        const checkSpeedAnswer = (selectedValue, btnElement) => {
+            speedUI.options.style.pointerEvents = 'none';
+            if (parseInt(selectedValue) === currentQuestion.answer) {
+                speedScore++;
+                speedUI.score.textContent = `分數: ${speedScore}`;
+                btnElement.style.backgroundColor = 'var(--correct-color)';
+                speedUI.question.classList.add('feedback-correct');
+            } else {
+                btnElement.style.backgroundColor = 'var(--incorrect-color)';
+                speedUI.question.classList.add('feedback-incorrect');
+            }
+            setTimeout(() => {
+                speedUI.question.classList.remove('feedback-correct', 'feedback-incorrect');
+                speedUI.options.style.pointerEvents = 'auto';
+                if (speedTimer > 0) nextSpeedQuestion();
+            }, 500);
+        };
+
+        nextSpeedQuestion();
+        
+        clearInterval(speedInterval);
+        speedInterval = setInterval(() => {
+            speedTimer--;
+            speedUI.timer.textContent = `時間: ${speedTimer}`;
+            if (speedTimer <= 0) {
+                clearInterval(speedInterval);
+                if (speedScore > gameData.speedChallengeHighscore) {
+                    gameData.speedChallengeHighscore = speedScore;
+                    saveGameData();
+                    showResultModal('新紀錄！', `你的分數是: ${speedScore}`, `最高紀錄: ${gameData.speedChallengeHighscore}`);
+                } else {
+                    showResultModal('時間到！', `你的分數是: ${speedScore}`, `最高紀錄: ${gameData.speedChallengeHighscore}`);
+                }
+            }
+        }, 1000);
+    }
+
+    // --- 戰鬥模式通用邏輯 ---
+    const battleUI = {
+        screen: document.getElementById('battle-screen'),
+        player: document.getElementById('player-char'),
+        enemy: document.getElementById('enemy-char'),
+        playerHPBarContainer: document.getElementById('player-hp-bar-container'),
+        playerHPBar: document.getElementById('player-hp-bar'),
+        playerHPGridContainer: document.getElementById('player-hp-grid-container'),
+        monsterHPContainer: document.getElementById('monster-hp-bar-container'),
+        monsterHP: document.getElementById('monster-hp-bar'),
+        bossHPContainer: document.getElementById('boss-hp-grid-container'),
+        question: document.getElementById('battle-question'),
+        options: document.getElementById('battle-options'),
+        stageInfo: document.getElementById('battle-stage-info'),
+        comboMeter: document.getElementById('combo-meter'),
+        skillBtn: document.getElementById('skill-btn'),
+    };
+
+    function startBattle(isBoss = false) {
+        battleState = {
+            isBoss: isBoss,
+            playerHP: isBoss ? PLAYER_MAX_HP : 100,
+            enemyStage: 0,
+            combo: 0,
+            skillShotActive: false,
+            unlockedLevels: gameData.completedLevels.length > 0 ? gameData.completedLevels : [2,3,4,5,10],
+        };
+        battleUI.screen.classList.toggle('final-boss-bg', isBoss);
+        showScreen('battle');
+        loadEnemy();
+    }
+    
+    function startMonsterBattle() { startBattle(false); }
+    function startFinalBossBattle() { startBattle(true); }
+
+    function loadEnemy() {
+        const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
+        battleState.enemyHP = enemyData.hp;
+        battleState.enemyMaxHP = enemyData.hp;
+        battleUI.enemy.textContent = enemyData.emoji;
+        
+        if(battleState.isBoss) {
+            setupBossHPGrid();
+            setupPlayerHPGrid();
+            battleUI.stageInfo.textContent = `終極挑戰: ${enemyData.name}`;
+        } else {
+            battleUI.monsterHPContainer.style.display = 'block';
+            battleUI.bossHPContainer.style.display = 'none';
+            battleUI.playerHPBarContainer.style.display = 'block';
+            battleUI.playerHPGridContainer.style.display = 'none';
+            battleUI.stageInfo.textContent = `第 ${battleState.enemyStage + 1} / ${MONSTERS.length} 隻: ${enemyData.name}`;
+        }
+        updateHPBars();
+        nextBattleTurn();
+    }
+    
+    function setupBossHPGrid() {
+        battleUI.monsterHPContainer.style.display = 'none';
+        battleUI.bossHPContainer.style.display = 'grid';
+        battleUI.bossHPContainer.innerHTML = '';
+        for(let i = 0; i < FINAL_BOSS.hp; i++) {
+            const segment = document.createElement('div');
+            segment.className = 'hp-segment';
+            battleUI.bossHPContainer.appendChild(segment);
+        }
+    }
+    
+    function setupPlayerHPGrid() {
+        battleUI.playerHPBarContainer.style.display = 'none';
+        battleUI.playerHPGridContainer.style.display = 'grid';
+        battleUI.playerHPGridContainer.innerHTML = '';
+        for(let i = 0; i < PLAYER_MAX_HP; i++) {
+            const segment = document.createElement('div');
+            segment.className = 'hp-segment';
+            battleUI.playerHPGridContainer.appendChild(segment);
+        }
+    }
+
+    function updateHPBars() {
+        if (battleState.isBoss) {
+            const playerSegments = battleUI.playerHPGridContainer.children;
+            for(let i = 0; i < playerSegments.length; i++) {
+                playerSegments[i].classList.toggle('lost', i >= battleState.playerHP);
+            }
+            const bossSegments = battleUI.bossHPContainer.children;
+            for(let i = 0; i < bossSegments.length; i++) {
+                bossSegments[i].classList.toggle('lost', i >= battleState.enemyHP);
+            }
+        } else {
+            battleUI.playerHPBar.style.width = `${battleState.playerHP}%`;
+            const enemyHPRatio = (battleState.enemyHP / battleState.enemyMaxHP) * 100;
+            battleUI.monsterHP.style.width = `${enemyHPRatio}%`;
+        }
+    }
+    
+    function updateComboMeter() {
+        battleUI.comboMeter.textContent = battleState.combo > 1 ? `x${battleState.combo} 連擊!` : '';
+        battleUI.skillBtn.classList.toggle('ready', battleState.combo >= 3);
+    }
+
+    function nextBattleTurn() {
+        const isReverseQuestion = battleState.isBoss;
+        const num1 = Math.floor(Math.random() * 9) + 2;
+        const num2 = Math.floor(Math.random() * 9) + 1;
+        currentQuestion = { num1, num2, answer: num1 * num2 };
+        const options = generateQuestionOptions(currentQuestion, isReverseQuestion);
+        battleUI.question.textContent = isReverseQuestion ? `${currentQuestion.answer}` : `${currentQuestion.num1} x ${currentQuestion.num2} = ?`;
+        renderOptions(battleUI.options, options, (val, btn) => checkBattleAnswer(val, btn, isReverseQuestion));
+    }
+    
+    function showDamagePopup(targetContainer, damage, isSkill = false) {
+        const popup = document.createElement('div');
+        popup.className = 'damage-popup';
+        popup.textContent = isSkill ? `✨-${damage}` : `-${damage}`;
+        if(isSkill) popup.style.color = 'var(--skill-btn-color)';
+        targetContainer.appendChild(popup);
+        setTimeout(() => popup.remove(), 1000);
+    }
+
+    function playerAttack(damage, isSkill = false) {
+        battleState.enemyHP = Math.max(0, battleState.enemyHP - damage);
+        showDamagePopup(document.getElementById('enemy-container'), damage, isSkill);
+        battleUI.player.style.animation = isSkill ? 'special-attack 0.8s' : 'attack 0.5s';
+        battleUI.enemy.classList.add('damage-anim');
+        updateHPBars();
+    }
+
+    function enemyAttack(damage) {
+        battleState.playerHP = Math.max(0, battleState.playerHP - damage);
+        showDamagePopup(document.getElementById('player-container'), damage);
+        battleUI.enemy.classList.add('attack-anim');
+        battleUI.player.classList.add('damage-anim');
+        updateHPBars();
+    }
+
+    function checkBattleAnswer(selectedValue, btnElement, isReverse) {
+        battleUI.options.style.pointerEvents = 'none';
+        battleUI.skillBtn.style.pointerEvents = 'none';
+        
+        const correctAnswer = isReverse ? `${currentQuestion.num1} x ${currentQuestion.num2}` : currentQuestion.answer;
+        const isCorrect = selectedValue == correctAnswer;
+
+        if (battleState.skillShotActive) {
+            if (isCorrect) {
+                playerAttack(5, true);
+            }
+            battleState.combo = 0;
+            battleState.skillShotActive = false;
+            battleUI.question.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+            battleUI.skillBtn.textContent = '✨ 必殺技！';
+        } else {
+            if (isCorrect) {
+                battleState.combo++;
+                const damage = battleState.isBoss ? 1 : 20 + battleState.combo * 5;
+                playerAttack(damage);
+            } else {
+                battleState.combo = 0;
+                const damage = battleState.isBoss ? 1 : 25;
+                enemyAttack(damage);
+            }
+        }
+        
+        updateComboMeter();
+
+        setTimeout(() => {
+            battleUI.player.style.animation = '';
+            battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
+            battleUI.options.style.pointerEvents = 'auto';
+            battleUI.skillBtn.style.pointerEvents = 'auto';
+
+            if (battleState.playerHP <= 0) {
+                const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
+                showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
+            } else if (battleState.enemyHP <= 0) {
+                if(battleState.isBoss) {
+                    showResultModal('完全勝利！', '你擊敗了九九大魔王！', '你已是真正的乘法宗師！');
+                    return;
+                }
+                battleState.enemyStage++;
+                if (battleState.enemyStage >= MONSTERS.length) {
+                    showResultModal('完全勝利！', '你擊敗了所有怪物！', '你真是個乘法大師！');
+                } else {
+                    battleState.combo = 0;
+                    updateComboMeter();
+                    loadEnemy();
+                }
+            } else {
+                nextBattleTurn();
+            }
+        }, 1000);
+    }
+    
+    battleUI.skillBtn.addEventListener('click', () => {
+        if (battleState.combo < 3 || battleState.skillShotActive) return;
+        
+        battleState.skillShotActive = true;
+        battleUI.skillBtn.classList.remove('ready');
+        battleUI.skillBtn.textContent = '聚氣中...';
+        battleUI.question.style.boxShadow = '0 0 25px 10px var(--skill-btn-color)';
+    });
+
+    // --- 結果視窗 ---
+    function showResultModal(title, scoreText, highscoreText) {
+        modal.title.textContent = title;
+        modal.score.textContent = scoreText;
+        modal.highscore.textContent = highscoreText;
+        modal.overlay.classList.add('active');
+    }
+
+    // --- 事件監聽 ---
+    document.getElementById('start-adventure-btn').addEventListener('click', () => {
+        generateMap();
+        showScreen('map');
+    });
+    
+    document.querySelectorAll('.back-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            clearInterval(speedInterval);
+            showScreen('map');
+        });
+    });
+
+    modal.closeBtn.addEventListener('click', () => {
+        modal.overlay.classList.remove('active');
+        generateMap();
+        showScreen('map');
+    });
+    
+    // --- 遊戲啟動 ---
+    loadGameData();
+    showScreen('welcome');
+});
+</script>
+
+</body>
+</html>

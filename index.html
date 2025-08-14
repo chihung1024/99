@@ -202,6 +202,25 @@
             font-size: clamp(1.5rem, 6vw, 2.5rem);
         }
 
+        /* 【新增】基礎練習進度條樣式 */
+        #practice-progress {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            height: 40px;
+            margin-top: 15px;
+        }
+        .progress-icon {
+            font-size: 2.5rem;
+            transition: transform 0.3s, opacity 0.3s;
+            opacity: 0.3;
+        }
+        .progress-icon.filled {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+
         /* --- 閃電挑戰畫面 --- */
         #speed-challenge-screen { background: linear-gradient(to top, #f6d365, #fda085); }
         .game-header {
@@ -387,7 +406,8 @@
             <h2 id="practice-title" style="font-size: 2rem;"></h2>
             <div id="practice-question" class="question-container"></div>
             <div id="practice-options" class="options-container"></div>
-            <p id="practice-feedback" style="font-size: 1.2rem; height: 20px; margin-top: 15px;"></p>
+            <!-- 【修改】進度提示改為圖示容器 -->
+            <div id="practice-progress"></div>
         </div>
     </div>
     
@@ -454,7 +474,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- 遊戲設定 ---
-    const GAME_DATA_KEY = 'multiplicationIslandData_v10'; // 更新版本
+    const GAME_DATA_KEY = 'multiplicationIslandData_v11'; // 更新版本
     const practiceLevels = [2, 3, 4, 5, 6, 7, 8, 9, 10];
     const speedChallengeUnlockRequirement = [2, 5, 10];
     const monsterBattleUnlockRequirement = [3, 4];
@@ -609,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         title: document.getElementById('practice-title'),
         question: document.getElementById('practice-question'),
         options: document.getElementById('practice-options'),
-        feedback: document.getElementById('practice-feedback'),
+        progress: document.getElementById('practice-progress'),
     };
 
     function startPractice(level) {
@@ -622,15 +642,34 @@ document.addEventListener('DOMContentLoaded', () => {
         practiceState.questionPool.sort(() => Math.random() - 0.5);
         practiceUI.title.textContent = `x${level} 的挑戰`;
         showScreen('practice');
+        setupPracticeProgressIcons();
         nextPracticeQuestion();
     }
 
+    function setupPracticeProgressIcons() {
+        practiceUI.progress.innerHTML = '';
+        for (let i = 0; i < practiceState.totalCorrectNeeded; i++) {
+            const icon = document.createElement('div');
+            icon.className = 'progress-icon';
+            icon.textContent = '🍎';
+            practiceUI.progress.appendChild(icon);
+        }
+    }
+
+    function updatePracticeProgressIcons() {
+        const icons = practiceUI.progress.children;
+        for (let i = 0; i < icons.length; i++) {
+            icons[i].classList.toggle('filled', i < practiceState.correctAnswersCount);
+        }
+    }
+
     function nextPracticeQuestion() {
+        updatePracticeProgressIcons();
         if (practiceState.correctAnswersCount >= practiceState.totalCorrectNeeded) {
             finishPractice();
             return;
         }
-        practiceUI.feedback.textContent = `答對 ${practiceState.correctAnswersCount} / ${practiceState.totalCorrectNeeded} 題`;
+        
         if (practiceState.questionPool.length === 0) {
              for (let i = 1; i <= 9; i++) {
                 practiceState.questionPool.push({ num1: practiceState.level, num2: i });
@@ -669,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameData.completedLevels.push(practiceState.level);
             saveGameData();
         }
-        showResultModal('挑戰成功！', `你累積答對了 ${practiceState.totalCorrectNeeded} 題！`, `已完成關卡: ${gameData.completedLevels.length}/${practiceLevels.length}`);
+        showResultModal('挑戰成功！', `你集滿了 ${practiceState.totalCorrectNeeded} 顆蘋果！`, `已完成關卡: ${gameData.completedLevels.length}/${practiceLevels.length}`);
     }
 
     // --- 閃電挑戰模式 ---
@@ -858,6 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showDamagePopup(document.getElementById('enemy-container'), damage, isSkill);
         battleUI.player.style.animation = isSkill ? 'special-attack 0.8s' : 'attack 0.5s';
         battleUI.enemy.classList.add('damage-anim');
+        // 【修正】在攻擊後立即更新血條
         updateHPBars();
     }
 
@@ -866,6 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showDamagePopup(document.getElementById('player-container'), damage);
         battleUI.enemy.classList.add('attack-anim');
         battleUI.player.classList.add('damage-anim');
+        // 【修正】在受傷後立即更新血條
         updateHPBars();
     }
 

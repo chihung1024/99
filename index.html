@@ -372,8 +372,10 @@
         /* --- 動畫 --- */
         @keyframes tada { from { transform: scale3d(1, 1, 1); } 10%, 20% { transform: scale3d(.9, .9, .9) rotate3d(0, 0, 1, -3deg); } 30%, 50%, 70%, 90% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg); } 40%, 60%, 80% { transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg); } to { transform: scale3d(1, 1, 1); } }
         @keyframes shake { from, to { transform: translate3d(0, 0, 0); } 10%, 30%, 50%, 70%, 90% { transform: translate3d(-10px, 0, 0); } 20%, 40%, 60%, 80% { transform: translate3d(10px, 0, 0); } }
-        @keyframes attack { 0% { transform: scale(1); } 50% { transform: scale(1.3) translateX(15px); } 100% { transform: scale(1); } }
-        @keyframes special-attack { 0% { transform: scale(1); } 25% { transform: scale(1.5) rotate(-15deg); } 50% { transform: scale(1.2) rotate(15deg); } 75% { transform: scale(1.5) rotate(0deg); } 100% { transform: scale(1); } }
+        .screen-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes attack { 0% { transform: scale(1); } 50% { transform: scale(1.3) translateX(15px); } 100% { transform: scale(1); } }        @keyframes special-attack { 0% { transform: scale(1); } 25% { transform: scale(1.5) rotate(-15deg); } 50% { transform: scale(1.2) rotate(15deg); } 75% { transform: scale(1.5) rotate(0deg); } 100% { transform: scale(1); } }
         @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(155, 89, 182, 0); } 100% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0); } }
         @keyframes pulse-glow { 0% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } 50% { box-shadow: 0 0 20px 10px #fdfdfe, 0 0 20px 10px #52057b; } 100% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } }
@@ -920,61 +922,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }    
 
     function checkBattleAnswer(selectedValue, btnElement, isReverse) {
-        battleUI.options.style.pointerEvents = 'none';
-        battleUI.skillBtn.style.pointerEvents = 'none';
-        
-        const correctAnswer = isReverse ? `${currentQuestion.num1} x ${currentQuestion.num2}` : currentQuestion.answer;
-        const isCorrect = selectedValue == correctAnswer;
-
-        if (battleState.skillShotActive) {
-            if (isCorrect) {
-                playerAttack(5, true);
-            }
-            battleState.combo = 0;
-            battleState.skillShotActive = false;
-            battleUI.question.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-            battleUI.skillBtn.textContent = '✨ 必殺技！';
-        } else {
-            if (isCorrect) {
-                battleState.combo++;
-                const damage = battleState.isBoss ? 1 : 20 + battleState.combo * 5;
-                playerAttack(damage);
-            } else {
-                battleState.combo = 0;
-                const damage = battleState.isBoss ? 1 : 25;
-                enemyAttack(damage);
-            }
-        }
-        
-        updateComboMeter();
-
-        setTimeout(() => {
-            battleUI.player.style.animation = '';
-            battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
-            battleUI.options.style.pointerEvents = 'auto';
-            battleUI.skillBtn.style.pointerEvents = 'auto';
-
-            if (battleState.playerHP <= 0) {
-                const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
-                showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
-            } else if (battleState.enemyHP <= 0) {
-                if(battleState.isBoss) {
-                    showResultModal('完全勝利！', '你擊敗了九九大魔王！', '你已是真正的乘法宗師！');
-                    return;
+            battleUI.options.style.pointerEvents = 'none';
+            battleUI.skillBtn.style.pointerEvents = 'none';
+            
+            const correctAnswer = isReverse ? `${currentQuestion.num1} x ${currentQuestion.num2}` : currentQuestion.answer;
+            const isCorrect = selectedValue == correctAnswer;
+    
+            if (battleState.skillShotActive) {
+                if (isCorrect) {
+                    playerAttack(5, true);
+                } else {
+                    // 必殺技失敗！觸發畫面震動
+                    battleUI.screen.classList.add('screen-shake');
                 }
-                battleState.enemyStage++;
-                if (battleState.enemyStage >= MONSTERS.length) {
-                    showResultModal('完全勝利！', '你擊敗了所有怪物！', '你真是個乘法大師！');
+                battleState.combo = 0;
+                battleState.skillShotActive = false;
+                battleUI.question.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                battleUI.skillBtn.textContent = '✨ 必殺技！';
+            } else {
+                if (isCorrect) {
+                    battleState.combo++;
+                    const damage = battleState.isBoss ? 1 : 20 + battleState.combo * 5;
+                    playerAttack(damage);
                 } else {
                     battleState.combo = 0;
-                    updateComboMeter();
-                    loadEnemy();
+                    const damage = battleState.isBoss ? 1 : 25;
+                    enemyAttack(damage);
                 }
-            } else {
-                nextBattleTurn();
             }
-        }, 1000);
-    }
+            
+            updateComboMeter();
+    
+            setTimeout(() => {
+                battleUI.player.style.animation = '';
+                battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
+                battleUI.screen.classList.remove('screen-shake'); // 清除震動效果
+                battleUI.options.style.pointerEvents = 'auto';
+                battleUI.skillBtn.style.pointerEvents = 'auto';
+    
+                if (battleState.playerHP <= 0) {
+                    const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
+                    showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
+                } else if (battleState.enemyHP <= 0) {
+                    if(battleState.isBoss) {
+                        showResultModal('完全勝利！', '你擊敗了九九大魔王！', '你已是真正的乘法宗師！');
+                        return;
+                    }
+                    battleState.enemyStage++;
+                    if (battleState.enemyStage >= MONSTERS.length) {
+                        showResultModal('完全勝利！', '你擊敗了所有怪物！', '你真是個乘法大師！');
+                    } else {
+                        battleState.combo = 0;
+                        updateComboMeter();
+                        loadEnemy();
+                    }
+                } else {
+                    nextBattleTurn();
+                }
+            }, 1000);
+        }
     
     battleUI.skillBtn.addEventListener('click', () => {
         if (battleState.combo < 3 || battleState.skillShotActive) return;

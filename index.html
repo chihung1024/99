@@ -90,14 +90,20 @@
             z-index: 10;
         }
 
-        /* --- 歡迎畫面 --- */
+        /* --- 歡迎畫面 (行動裝置優化) --- */
         #welcome-screen {
             background: linear-gradient(to top, #89cff0, #aee8ff);
         }
-        #welcome-screen h1 { font-size: 3rem; color: #005a8d; text-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        #welcome-screen p { font-size: 1.2rem; }
+        #welcome-screen h1 { 
+            font-size: clamp(2.5rem, 10vw, 3.5rem); 
+            color: #005a8d; 
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.1); 
+        }
+        #welcome-screen p { 
+            font-size: clamp(1rem, 4vw, 1.2rem); 
+        }
 
-        /* --- 地圖畫面 --- */
+        /* --- 地圖畫面 (行動裝置優化) --- */
         #map-screen {
             justify-content: flex-start;
             padding-top: 30px;
@@ -127,12 +133,13 @@
              display: flex;
              flex-wrap: wrap;
              justify-content: center;
+             gap: 15px;
         }
 
         .map-btn {
-            width: 100px;
-            height: 100px;
-            font-size: 1.8rem;
+            width: clamp(80px, 22vw, 100px);
+            height: clamp(80px, 22vw, 100px);
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
             border-radius: 20px;
             display: flex;
             flex-direction: column;
@@ -141,40 +148,21 @@
             position: relative;
         }
         .map-btn span { font-size: 0.8rem; font-weight: 400; margin-top: 5px; }
-        .map-btn.locked {
-            background-color: #BDBDBD;
-            color: #757575;
-            cursor: not-allowed;
-        }
-        .map-btn.locked .lock-icon {
-            display: block;
-            position: absolute;
-            font-size: 2rem;
-            opacity: 0.7;
-        }
-        .map-btn .lock-icon { display: none; }
         .map-btn.special { background-color: var(--special-btn-color); }
         .map-btn.special:hover { background-color: var(--special-btn-hover); }
         .map-btn.danger { background-color: var(--danger-btn-color); }
         .map-btn.danger:hover { background-color: var(--danger-btn-hover); }
         
         .map-btn.final-boss {
-            width: calc(100% - 30px);
-            max-width: 330px;
+            width: clamp(200px, 68vw, 330px);
             margin-top: 15px;
             background: var(--final-boss-color);
             animation: pulse-glow 2s infinite ease-in-out;
         }
         .map-btn.final-boss:hover { background-color: var(--final-boss-hover); }
-        .map-btn.final-boss.locked {
-            background: #616161;
-            color: #e0e0e0;
-            animation: pulse-dark 2.5s infinite ease-in-out;
-        }
-        .map-btn.final-boss.locked:hover { background: #424242; }
 
 
-        /* --- 遊戲畫面通用 --- */
+        /* --- 遊戲畫面通用 (行動裝置優化) --- */
         .game-ui-container {
             width: 100%;
             max-width: 600px;
@@ -198,7 +186,7 @@
         }
         .option-btn {
             width: 100%;
-            height: 90px;
+            height: clamp(70px, 18vw, 90px);
             font-size: clamp(1.5rem, 6vw, 2.5rem);
         }
 
@@ -239,7 +227,7 @@
             border-radius: 20px;
         }
 
-        /* --- 戰鬥畫面通用 --- */
+        /* --- 戰鬥畫面通用 (行動裝置優化) --- */
         .battle-screen { background: linear-gradient(to top, #7f7fd5, #86a8e7, #91eae4); }
         #battle-screen.final-boss-bg { background: linear-gradient(to top, #434343, #000000); }
         .battle-arena {
@@ -264,23 +252,6 @@
             align-items: center;
             justify-content: center;
         }
-        .hp-bar-container {
-            width: 120px;
-            height: 20px;
-            background-color: #eee;
-            border-radius: 10px;
-            border: 2px solid #555;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        .hp-bar {
-            height: 100%;
-            width: 100%;
-            background-color: var(--correct-color);
-            border-radius: 8px;
-            transition: width 0.5s ease-in-out;
-        }
-        .monster-hp-bar { background-color: var(--incorrect-color); }
         
         .hp-grid-container {
             display: grid;
@@ -291,18 +262,19 @@
             border-radius: 5px;
             margin-top: 5px;
         }
+        #player-hp-grid-container,
+        #monster-hp-grid-container {
+            width: clamp(100px, 30vw, 125px);
+            height: 20px;
+            grid-template-columns: repeat(5, 1fr);
+        }
         #boss-hp-grid-container {
-            width: 250px;
+            width: clamp(200px, 55vw, 250px);
             height: 42px;
             grid-template-columns: repeat(10, 1fr);
             grid-template-rows: repeat(2, 1fr);
         }
-        #player-hp-grid-container {
-            width: 125px;
-            height: 20px;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: 1fr;
-        }
+
         .hp-segment {
             transition: background-color 0.5s;
             border-radius: 2px;
@@ -360,10 +332,7 @@
         
         #skill-btn {
             background-color: var(--skill-btn-color);
-            position: absolute;
-            bottom: -70px;
-            left: 50%;
-            transform: translateX(-50%);
+            margin-top: 20px; /* 改為 margin, 不再使用 absolute 定位 */
             display: none;
             opacity: 0.7;
             cursor: not-allowed;
@@ -459,19 +428,13 @@
             <div class="character-container" id="player-container">
                 <div id="player-char" class="character">🐵</div>
                 <div id="player-hp-container">
-                    <div class="hp-bar-container" id="player-hp-bar-container" style="display: none;">
-                        <div id="player-hp-bar" class="hp-bar"></div>
-                    </div>
                     <div class="hp-grid-container" id="player-hp-grid-container"></div>
                 </div>
             </div>
             <div class="character-container" id="enemy-container">
                 <div id="enemy-char" class="character"></div>
                 <div id="enemy-hp-container">
-                    <div class="hp-bar-container" id="monster-hp-bar-container" style="display: none;">
-                        <div id="monster-hp-bar" class="hp-bar monster-hp-bar"></div>
-                    </div>
-                    <div class="hp-grid-container" id="monster-hp-grid-container" style="grid-template-columns: repeat(5, 1fr); width: 125px; height: 20px;"></div>
+                    <div class="hp-grid-container" id="monster-hp-grid-container"></div>
                     <div class="hp-grid-container" id="boss-hp-grid-container"></div>
                 </div>
             </div>
@@ -498,10 +461,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- 遊戲設定 ---
-    const GAME_DATA_KEY = 'multiplicationIslandData_v17'; // 更新版本
+    const GAME_DATA_KEY = 'multiplicationIslandData_v18'; // 更新版本
     const practiceLevels = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    // 【修改】使用 Emoji，確保所有裝置都能顯示
     const MONSTERS = [
-        { name: '史萊姆', emoji: '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAANMSURBVHhe7ZpNTxtBFMefc+8kIhECRUhKxAMgJSJERUgoHhAQCgQ5+AMUeQI5QG4A8gRKlA4Q6MCJEyUuAQUVlYgIWhIQCpGkE+M+c3Y3O7s7s7s7m9F/sl+2u/e93+fnzOzM7I5I0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0v5S+1/pB+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oT2v9g9Y/6H8z/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6gAAAABJRU5ErkJggg==" width="60">', hp: 5 },
+        { name: '史萊姆', emoji: '🟢', hp: 5 },
         { name: '獨眼怪', emoji: '👿', hp: 5 },
         { name: '石頭人', emoji: '🗿', hp: 5 }
     ];
@@ -557,7 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 地圖生成 ---
-    // 【修改】移除所有關卡鎖定
     function generateMap() {
         const practiceGrid = document.getElementById('practice-grid');
         const playgroundGrid = document.getElementById('playground-grid');
@@ -656,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < practiceState.totalCorrectNeeded; i++) {
             const icon = document.createElement('div');
             icon.className = 'progress-icon';
-            icon.textContent = '�';
+            icon.textContent = '🍎';
             practiceUI.progress.appendChild(icon);
         }
     }
@@ -783,11 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
         screen: document.getElementById('battle-screen'),
         player: document.getElementById('player-char'),
         enemy: document.getElementById('enemy-char'),
-        playerHPBarContainer: document.getElementById('player-hp-bar-container'),
-        playerHPBar: document.getElementById('player-hp-bar'),
         playerHPGridContainer: document.getElementById('player-hp-grid-container'),
-        monsterHPContainer: document.getElementById('monster-hp-bar-container'),
-        monsterHP: document.getElementById('monster-hp-bar'),
         monsterHPGridContainer: document.getElementById('monster-hp-grid-container'),
         bossHPContainer: document.getElementById('boss-hp-grid-container'),
         question: document.getElementById('battle-question'),
@@ -831,13 +790,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('battle-timer').style.display = 'none';
 
         if(battleState.isBoss) {
-            battleUI.monsterHPContainer.style.display = 'none';
             battleUI.monsterHPGridContainer.style.display = 'none';
             battleUI.bossHPContainer.style.display = 'grid';
             setupBossHPGrid();
             battleUI.stageInfo.textContent = `終極挑戰: ${enemyData.name}`;
         } else {
-            battleUI.monsterHPContainer.style.display = 'none';
             battleUI.bossHPContainer.style.display = 'none';
             battleUI.monsterHPGridContainer.style.display = 'grid';
             setupMonsterHPGrid();
@@ -866,8 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupPlayerHPGrid() {
-        battleUI.playerHPBarContainer.style.display = 'none';
-        battleUI.playerHPGridContainer.style.display = 'grid';
         battleUI.playerHPGridContainer.innerHTML = '';
         for(let i = 0; i < PLAYER_MAX_HP; i++) {
             const segment = document.createElement('div');
@@ -1114,4 +1069,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-�

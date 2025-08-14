@@ -430,6 +430,7 @@
     <div id="battle-screen" class="screen battle-screen">
         <button class="btn back-btn" id="back-to-map-battle">返回地圖</button>
         <div id="battle-stage-info" class="battle-info"></div>
+        <div id="battle-timer" class="battle-info" style="margin-top: -10px; margin-bottom: 10px; display: none;"></div>
         <div class="battle-arena">
             <div class="character-container" id="player-container">
                 <div id="player-char" class="character">🐵</div>
@@ -504,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameData = {};
     let currentQuestion = {};
     let speedInterval;
+    let battleTimerInterval;
     let battleState = {};
     let practiceState = {
         level: 0,
@@ -792,14 +794,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function startBattle(isBoss = false) {
         battleState = {
             isBoss: isBoss,
-            playerHP: isBoss ? PLAYER_MAX_HP : 100,
+            playerHP: PLAYER_MAX_HP, // 統一使用 5 格血
             enemyStage: 0,
             combo: 0,
             skillShotActive: false,
             unlockedLevels: gameData.completedLevels.length > 0 ? gameData.completedLevels : [2,3,4,5,10],
         };
+
+        // 根據模式決定是否顯示必殺技按鈕
+        battleUI.skillBtn.style.display = isBoss ? 'block' : 'none';
+        
         battleUI.screen.classList.toggle('final-boss-bg', isBoss);
         showScreen('battle');
+        
+        // 所有戰鬥都為玩家設定格子血條
+        setupPlayerHPGrid();
         loadEnemy();
     }
     
@@ -812,15 +821,16 @@ document.addEventListener('DOMContentLoaded', () => {
         battleState.enemyMaxHP = enemyData.hp;
         battleUI.enemy.textContent = enemyData.emoji;
         
+        // 停止上一關可能在執行的計時器
+        clearInterval(battleTimerInterval);
+        document.getElementById('battle-timer').style.display = 'none';
+
         if(battleState.isBoss) {
             setupBossHPGrid();
-            setupPlayerHPGrid();
             battleUI.stageInfo.textContent = `終極挑戰: ${enemyData.name}`;
         } else {
             battleUI.monsterHPContainer.style.display = 'block';
             battleUI.bossHPContainer.style.display = 'none';
-            battleUI.playerHPBarContainer.style.display = 'block';
-            battleUI.playerHPGridContainer.style.display = 'none';
             battleUI.stageInfo.textContent = `第 ${battleState.enemyStage + 1} / ${MONSTERS.length} 隻: ${enemyData.name}`;
         }
         updateHPBars();
@@ -850,30 +860,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateHPBars() {
-        if (battleState.isBoss) {
-            console.log(`正在更新血條畫面，收到的玩家血量為: ${battleState.playerHP}`); // <-- 加入這一行
-    
-            // 更新玩家血條 (使用我上次提供的修正版本)
-            const playerSegments = battleUI.playerHPGridContainer.children;
-            for(let i = 0; i < playerSegments.length; i++) {
-                if (i < battleState.playerHP) {
-                    playerSegments[i].classList.remove('lost');
-                } else {
-                    playerSegments[i].classList.add('lost');
-                }
+        // 玩家血條統一使用格子顯示
+        const playerSegments = battleUI.playerHPGridContainer.children;
+        for(let i = 0; i < playerSegments.length; i++) {
+             if (i < battleState.playerHP) {
+                playerSegments[i].classList.remove('lost');
+            } else {
+                playerSegments[i].classList.add('lost');
             }
-    
-            // 更新 Boss 血條 (使用我上次提供的修正版本)
+        }
+
+        // 根據敵人是 Boss 還是普通怪物，決定其血條樣式
+        if (battleState.isBoss) {
             const bossSegments = battleUI.bossHPContainer.children;
             for(let i = 0; i < bossSegments.length; i++) {
-                 if (i < battleState.enemyHP) {
+                if (i < battleState.enemyHP) {
                     bossSegments[i].classList.remove('lost');
                 } else {
                     bossSegments[i].classList.add('lost');
                 }
             }
         } else {
-            battleUI.playerHPBar.style.width = `${battleState.playerHP}%`;
             const enemyHPRatio = (battleState.enemyHP / battleState.enemyMaxHP) * 100;
             battleUI.monsterHP.style.width = `${enemyHPRatio}%`;
         }
@@ -885,7 +892,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function nextBattleTurn() {
-        const isReverseQuestion = battleState.isBoss;
+        // 第三關怪物與 Boss 戰使用逆向問題
+        const isReverseQuestion = battleState.isBoss || (!battleState.isBoss && battleState.enemyStage === 2);
+        
+        // 如果是第二關怪物，啟動計時器
+        if (!battleState.isBoss && battleState.enemyStage === 1) {
+            startBattleTimer();
+        }
+
         const num1 = Math.floor(Math.random() * 9) + 2;
         const num2 = Math.floor(Math.random() * 9) + 1;
         currentQuestion = { num1, num2, answer: num1 * num2 };
@@ -922,6 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }    
 
     function checkBattleAnswer(selectedValue, btnElement, isReverse) {
+            clearInterval(battleTimerInterval);
             battleUI.options.style.pointerEvents = 'none';
             battleUI.skillBtn.style.pointerEvents = 'none';
             
@@ -981,6 +996,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1000);
         }
+
+    function startBattleTimer() {
+        clearInterval(battleTimerInterval);
+        const timerUI = document.getElementById('battle-timer');
+        let timeLeft = 10;
+        timerUI.textContent = `剩餘時間: ${timeLeft}`;
+        timerUI.style.display = 'block';
+        
+        // 確保選項可以點擊
+        battleUI.options.style.pointerEvents = 'auto';
+        Array.from(battleUI.options.children).forEach(btn => btn.style.pointerEvents = 'auto');
+
+
+        battleTimerInterval = setInterval(() => {
+            timeLeft--;
+            timerUI.textContent = `剩餘時間: ${timeLeft}`;
+            if (timeLeft <= 0) {
+                clearInterval(battleTimerInterval);
+                timerUI.textContent = "時間到！";
+                battleUI.options.style.pointerEvents = 'none';
+
+                // 時間到，觸發答錯的流程
+                const damage = 1;
+                enemyAttack(damage);
+                updateComboMeter();
+
+                setTimeout(() => {
+                    battleUI.player.style.animation = '';
+                    battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
+                    
+                    if (battleState.playerHP <= 0) {
+                        const enemyData = MONSTERS[battleState.enemyStage];
+                        showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
+                    } else {
+                        nextBattleTurn();
+                    }
+                }, 1000);
+            }
+        }, 1000);
+    }
     
     battleUI.skillBtn.addEventListener('click', () => {
         if (battleState.combo < 3 || battleState.skillShotActive) return;

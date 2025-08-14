@@ -202,7 +202,7 @@
             font-size: clamp(1.5rem, 6vw, 2.5rem);
         }
 
-        /* 【新增】基礎練習進度條樣式 */
+        /* 【修改】基礎練習進度條樣式 */
         #practice-progress {
             display: flex;
             justify-content: center;
@@ -406,7 +406,6 @@
             <h2 id="practice-title" style="font-size: 2rem;"></h2>
             <div id="practice-question" class="question-container"></div>
             <div id="practice-options" class="options-container"></div>
-            <!-- 【修改】進度提示改為圖示容器 -->
             <div id="practice-progress"></div>
         </div>
     </div>
@@ -435,9 +434,7 @@
                     <div class="hp-bar-container" id="player-hp-bar-container" style="display: none;">
                         <div id="player-hp-bar" class="hp-bar"></div>
                     </div>
-                    <div class="hp-grid-container" id="player-hp-grid-container">
-                        <!-- Player HP segments will be generated here -->
-                    </div>
+                    <div class="hp-grid-container" id="player-hp-grid-container"></div>
                 </div>
             </div>
             <div class="character-container" id="enemy-container">
@@ -446,9 +443,7 @@
                     <div class="hp-bar-container" id="monster-hp-bar-container">
                         <div id="monster-hp-bar" class="hp-bar monster-hp-bar"></div>
                     </div>
-                    <div class="hp-grid-container" id="boss-hp-grid-container">
-                        <!-- Boss HP segments will be generated here -->
-                    </div>
+                    <div class="hp-grid-container" id="boss-hp-grid-container"></div>
                 </div>
             </div>
         </div>
@@ -474,7 +469,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- 遊戲設定 ---
-    const GAME_DATA_KEY = 'multiplicationIslandData_v11'; // 更新版本
+    const GAME_DATA_KEY = 'multiplicationIslandData_v12'; // 更新版本
     const practiceLevels = [2, 3, 4, 5, 6, 7, 8, 9, 10];
     const speedChallengeUnlockRequirement = [2, 5, 10];
     const monsterBattleUnlockRequirement = [3, 4];
@@ -897,7 +892,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showDamagePopup(document.getElementById('enemy-container'), damage, isSkill);
         battleUI.player.style.animation = isSkill ? 'special-attack 0.8s' : 'attack 0.5s';
         battleUI.enemy.classList.add('damage-anim');
-        // 【修正】在攻擊後立即更新血條
         updateHPBars();
     }
 
@@ -906,7 +900,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showDamagePopup(document.getElementById('player-container'), damage);
         battleUI.enemy.classList.add('attack-anim');
         battleUI.player.classList.add('damage-anim');
-        // 【修正】在受傷後立即更新血條
         updateHPBars();
     }
 

@@ -848,15 +848,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateHPBars() {
         if (battleState.isBoss) {
+            // 更新玩家血條 (修正後)
             const playerSegments = battleUI.playerHPGridContainer.children;
             for(let i = 0; i < playerSegments.length; i++) {
-                playerSegments[i].classList.toggle('lost', i >= battleState.playerHP);
+                if (i < battleState.playerHP) {
+                    playerSegments[i].classList.remove('lost');
+                } else {
+                    playerSegments[i].classList.add('lost');
+                }
             }
+    
+            // 更新 Boss 血條 (修正後)
             const bossSegments = battleUI.bossHPContainer.children;
             for(let i = 0; i < bossSegments.length; i++) {
-                bossSegments[i].classList.toggle('lost', i >= battleState.enemyHP);
+                if (i < battleState.enemyHP) {
+                    bossSegments[i].classList.remove('lost');
+                } else {
+                    bossSegments[i].classList.add('lost');
+                }
             }
         } else {
+            // (非 Boss 戰鬥的血條更新邏輯維持不變)
             battleUI.playerHPBar.style.width = `${battleState.playerHP}%`;
             const enemyHPRatio = (battleState.enemyHP / battleState.enemyMaxHP) * 100;
             battleUI.monsterHP.style.width = `${enemyHPRatio}%`;

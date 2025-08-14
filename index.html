@@ -202,7 +202,7 @@
             font-size: clamp(1.5rem, 6vw, 2.5rem);
         }
 
-        /* 【修改】基礎練習進度條樣式 */
+        /* --- 基礎練習進度條樣式 --- */
         #practice-progress {
             display: flex;
             justify-content: center;
@@ -259,6 +259,10 @@
         .character {
             font-size: clamp(4rem, 20vw, 6rem);
             transition: transform 0.2s;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .hp-bar-container {
             width: 120px;
@@ -303,10 +307,17 @@
             transition: background-color 0.5s;
             border-radius: 2px;
         }
-        #boss-hp-grid-container .hp-segment { background-color: var(--incorrect-color); }
-        #player-hp-grid-container .hp-segment { background-color: var(--correct-color); }
+        #boss-hp-grid-container .hp-segment,
+        #monster-hp-grid-container .hp-segment {
+             background-color: var(--incorrect-color);
+        }
+        #player-hp-grid-container .hp-segment { 
+            background-color: var(--correct-color); 
+        }
+        
         #boss-hp-grid-container .hp-segment.lost,
-        #player-hp-grid-container .hp-segment.lost {
+        #player-hp-grid-container .hp-segment.lost,
+        #monster-hp-grid-container .hp-segment.lost {
             background-color: #555;
         }
 
@@ -329,6 +340,13 @@
         }
         #battle-screen.final-boss-bg .battle-info { color: white; }
 
+        #battle-timer {
+            font-size: 1.8rem;
+            color: var(--danger-btn-color);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            animation: pulse-red 1s infinite;
+        }
+
         #combo-meter {
             position: absolute;
             top: -30px;
@@ -339,6 +357,7 @@
             color: #fff;
             text-shadow: 1px 1px 3px #000;
         }
+        
         #skill-btn {
             background-color: var(--skill-btn-color);
             position: absolute;
@@ -346,9 +365,12 @@
             left: 50%;
             transform: translateX(-50%);
             display: none;
+            opacity: 0.7;
+            cursor: not-allowed;
         }
         #skill-btn.ready {
-            display: block;
+            opacity: 1;
+            cursor: pointer;
             animation: pulse 1.5s infinite;
         }
 
@@ -375,11 +397,13 @@
         .screen-shake {
             animation: shake 0.5s ease-in-out;
         }
-        @keyframes attack { 0% { transform: scale(1); } 50% { transform: scale(1.3) translateX(15px); } 100% { transform: scale(1); } }        @keyframes special-attack { 0% { transform: scale(1); } 25% { transform: scale(1.5) rotate(-15deg); } 50% { transform: scale(1.2) rotate(15deg); } 75% { transform: scale(1.5) rotate(0deg); } 100% { transform: scale(1); } }
+        @keyframes attack { 0% { transform: scale(1); } 50% { transform: scale(1.3) translateX(15px); } 100% { transform: scale(1); } }
+        @keyframes special-attack { 0% { transform: scale(1); } 25% { transform: scale(1.5) rotate(-15deg); } 50% { transform: scale(1.2) rotate(15deg); } 75% { transform: scale(1.5) rotate(0deg); } 100% { transform: scale(1); } }
         @keyframes float-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(155, 89, 182, 0); } 100% { box-shadow: 0 0 0 0 rgba(155, 89, 182, 0); } }
         @keyframes pulse-glow { 0% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } 50% { box-shadow: 0 0 20px 10px #fdfdfe, 0 0 20px 10px #52057b; } 100% { box-shadow: 0 0 5px 0px #fdfdfe, 0 0 5px 0px #52057b; } }
         @keyframes pulse-dark { 0% { box-shadow: 0 0 0 0 rgba(145, 145, 145, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(145, 145, 145, 0); } 100% { box-shadow: 0 0 0 0 rgba(145, 145, 145, 0); } }
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -444,9 +468,10 @@
             <div class="character-container" id="enemy-container">
                 <div id="enemy-char" class="character"></div>
                 <div id="enemy-hp-container">
-                    <div class="hp-bar-container" id="monster-hp-bar-container">
+                    <div class="hp-bar-container" id="monster-hp-bar-container" style="display: none;">
                         <div id="monster-hp-bar" class="hp-bar monster-hp-bar"></div>
                     </div>
+                    <div class="hp-grid-container" id="monster-hp-grid-container" style="grid-template-columns: repeat(5, 1fr); width: 125px; height: 20px;"></div>
                     <div class="hp-grid-container" id="boss-hp-grid-container"></div>
                 </div>
             </div>
@@ -473,14 +498,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- 遊戲設定 ---
-    const GAME_DATA_KEY = 'multiplicationIslandData_v12'; // 更新版本
+    const GAME_DATA_KEY = 'multiplicationIslandData_v17'; // 更新版本
     const practiceLevels = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const speedChallengeUnlockRequirement = [2, 5, 10];
-    const monsterBattleUnlockRequirement = [3, 4];
     const MONSTERS = [
-        { name: '史萊姆', emoji: '🟢', hp: 80 },
-        { name: '獨眼怪', emoji: '👿', hp: 100 },
-        { name: '石頭人', emoji: '🗿', hp: 120 }
+        { name: '史萊姆', emoji: '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAANMSURBVHhe7ZpNTxtBFMefc+8kIhECRUhKxAMgJSJERUgoHhAQCgQ5+AMUeQI5QG4A8gRKlA4Q6MCJEyUuAQUVlYgIWhIQCpGkE+M+c3Y3O7s7s7s7m9F/sl+2u/e93+fnzOzM7I5I0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0v5S+1/pB+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oD+iP6A/oT2v9g9Y/6H8z/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6H9p/Y/+l9Y/6gAAAABJRU5ErkJggg==" width="60">', hp: 5 },
+        { name: '獨眼怪', emoji: '👿', hp: 5 },
+        { name: '石頭人', emoji: '🗿', hp: 5 }
     ];
     const FINAL_BOSS = { name: '九九大魔王', emoji: '😈', hp: 20 };
     const PLAYER_MAX_HP = 5;
@@ -534,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 地圖生成 ---
+    // 【修改】移除所有關卡鎖定
     function generateMap() {
         const practiceGrid = document.getElementById('practice-grid');
         const playgroundGrid = document.getElementById('playground-grid');
@@ -551,41 +575,22 @@ document.addEventListener('DOMContentLoaded', () => {
             practiceGrid.appendChild(btn);
         });
 
-        const speedUnlocked = speedChallengeUnlockRequirement.every(l => gameData.completedLevels.includes(l));
         const speedBtn = document.createElement('button');
         speedBtn.className = 'btn map-btn special';
-        speedBtn.innerHTML = `⚡️<span>閃電挑戰</span><div class="lock-icon">🔒</div>`;
-        if (speedUnlocked) {
-            speedBtn.addEventListener('click', startSpeedChallenge);
-        } else {
-            speedBtn.classList.add('locked');
-            speedBtn.title = `請先完成 x${speedChallengeUnlockRequirement.join(', x')} 的挑戰來解鎖！`;
-        }
+        speedBtn.innerHTML = `⚡️<span>閃電挑戰</span>`;
+        speedBtn.addEventListener('click', startSpeedChallenge);
         playgroundGrid.appendChild(speedBtn);
         
-        const monsterUnlocked = monsterBattleUnlockRequirement.every(l => gameData.completedLevels.includes(l));
         const monsterBtn = document.createElement('button');
         monsterBtn.className = 'btn map-btn danger';
-        monsterBtn.innerHTML = `👹<span>怪物大作戰</span><div class="lock-icon">🔒</div>`;
-        if (monsterUnlocked) {
-            monsterBtn.addEventListener('click', startMonsterBattle);
-        } else {
-            monsterBtn.classList.add('locked');
-            monsterBtn.title = `請先完成 x${monsterBattleUnlockRequirement.join(', x')} 的挑戰來解鎖！`;
-        }
+        monsterBtn.innerHTML = `👹<span>怪物大作戰</span>`;
+        monsterBtn.addEventListener('click', startMonsterBattle);
         playgroundGrid.appendChild(monsterBtn);
 
-        const finalBossUnlocked = practiceLevels.every(l => gameData.completedLevels.includes(l));
         const bossBtn = document.createElement('button');
         bossBtn.className = 'btn map-btn final-boss';
-        if (finalBossUnlocked) {
-            bossBtn.innerHTML = `😈<span>終極挑戰</span>`;
-            bossBtn.addEventListener('click', startFinalBossBattle);
-        } else {
-            bossBtn.classList.add('locked');
-            bossBtn.innerHTML = `???<span>完成所有基礎練習以解鎖</span>`;
-            bossBtn.title = '完成所有九宮格挑戰來解鎖最終魔王！';
-        }
+        bossBtn.innerHTML = `😈<span>終極挑戰</span>`;
+        bossBtn.addEventListener('click', startFinalBossBattle);
         playgroundGrid.appendChild(bossBtn);
     }
 
@@ -651,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < practiceState.totalCorrectNeeded; i++) {
             const icon = document.createElement('div');
             icon.className = 'progress-icon';
-            icon.textContent = '🍎';
+            icon.textContent = '�';
             practiceUI.progress.appendChild(icon);
         }
     }
@@ -783,6 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playerHPGridContainer: document.getElementById('player-hp-grid-container'),
         monsterHPContainer: document.getElementById('monster-hp-bar-container'),
         monsterHP: document.getElementById('monster-hp-bar'),
+        monsterHPGridContainer: document.getElementById('monster-hp-grid-container'),
         bossHPContainer: document.getElementById('boss-hp-grid-container'),
         question: document.getElementById('battle-question'),
         options: document.getElementById('battle-options'),
@@ -792,24 +798,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function startBattle(isBoss = false) {
+        battleUI.comboMeter.textContent = '';
+
         battleState = {
             isBoss: isBoss,
-            playerHP: PLAYER_MAX_HP, // 統一使用 5 格血
+            playerHP: PLAYER_MAX_HP,
             enemyStage: 0,
             combo: 0,
             skillShotActive: false,
-            unlockedLevels: gameData.completedLevels.length > 0 ? gameData.completedLevels : [2,3,4,5,10],
         };
-
-        // 根據模式決定是否顯示必殺技按鈕
-        battleUI.skillBtn.style.display = isBoss ? 'block' : 'none';
         
+        battleUI.skillBtn.style.display = isBoss ? 'block' : 'none';
+
         battleUI.screen.classList.toggle('final-boss-bg', isBoss);
         showScreen('battle');
         
-        // 所有戰鬥都為玩家設定格子血條
         setupPlayerHPGrid();
         loadEnemy();
+        updateComboMeter();
     }
     
     function startMonsterBattle() { startBattle(false); }
@@ -819,18 +825,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
         battleState.enemyHP = enemyData.hp;
         battleState.enemyMaxHP = enemyData.hp;
-        battleUI.enemy.textContent = enemyData.emoji;
+        battleUI.enemy.innerHTML = enemyData.emoji;
         
-        // 停止上一關可能在執行的計時器
         clearInterval(battleTimerInterval);
         document.getElementById('battle-timer').style.display = 'none';
 
         if(battleState.isBoss) {
+            battleUI.monsterHPContainer.style.display = 'none';
+            battleUI.monsterHPGridContainer.style.display = 'none';
+            battleUI.bossHPContainer.style.display = 'grid';
             setupBossHPGrid();
             battleUI.stageInfo.textContent = `終極挑戰: ${enemyData.name}`;
         } else {
-            battleUI.monsterHPContainer.style.display = 'block';
+            battleUI.monsterHPContainer.style.display = 'none';
             battleUI.bossHPContainer.style.display = 'none';
+            battleUI.monsterHPGridContainer.style.display = 'grid';
+            setupMonsterHPGrid();
             battleUI.stageInfo.textContent = `第 ${battleState.enemyStage + 1} / ${MONSTERS.length} 隻: ${enemyData.name}`;
         }
         updateHPBars();
@@ -838,8 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function setupBossHPGrid() {
-        battleUI.monsterHPContainer.style.display = 'none';
-        battleUI.bossHPContainer.style.display = 'grid';
         battleUI.bossHPContainer.innerHTML = '';
         for(let i = 0; i < FINAL_BOSS.hp; i++) {
             const segment = document.createElement('div');
@@ -848,6 +856,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    function setupMonsterHPGrid() {
+        battleUI.monsterHPGridContainer.innerHTML = '';
+        for(let i = 0; i < 5; i++) {
+            const segment = document.createElement('div');
+            segment.className = 'hp-segment';
+            battleUI.monsterHPGridContainer.appendChild(segment);
+        }
+    }
+
     function setupPlayerHPGrid() {
         battleUI.playerHPBarContainer.style.display = 'none';
         battleUI.playerHPGridContainer.style.display = 'grid';
@@ -860,7 +877,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateHPBars() {
-        // 玩家血條統一使用格子顯示
         const playerSegments = battleUI.playerHPGridContainer.children;
         for(let i = 0; i < playerSegments.length; i++) {
              if (i < battleState.playerHP) {
@@ -870,7 +886,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 根據敵人是 Boss 還是普通怪物，決定其血條樣式
         if (battleState.isBoss) {
             const bossSegments = battleUI.bossHPContainer.children;
             for(let i = 0; i < bossSegments.length; i++) {
@@ -881,21 +896,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else {
-            const enemyHPRatio = (battleState.enemyHP / battleState.enemyMaxHP) * 100;
-            battleUI.monsterHP.style.width = `${enemyHPRatio}%`;
+             const monsterSegments = battleUI.monsterHPGridContainer.children;
+             for(let i = 0; i < monsterSegments.length; i++) {
+                 if (i < battleState.enemyHP) {
+                    monsterSegments[i].classList.remove('lost');
+                } else {
+                    monsterSegments[i].classList.add('lost');
+                }
+            }
         }
     }
     
     function updateComboMeter() {
         battleUI.comboMeter.textContent = battleState.combo > 1 ? `x${battleState.combo} 連擊!` : '';
-        battleUI.skillBtn.classList.toggle('ready', battleState.combo >= 3);
+        
+        if (battleState.isBoss) {
+            battleUI.skillBtn.classList.remove('ready');
+            switch (battleState.combo) {
+                case 0:
+                    battleUI.skillBtn.textContent = '必殺技';
+                    break;
+                case 1:
+                    battleUI.skillBtn.textContent = '集氣 1/3';
+                    break;
+                case 2:
+                    battleUI.skillBtn.textContent = '集氣 2/3';
+                    break;
+                default:
+                    battleUI.skillBtn.textContent = '✨ 必殺技！';
+                    battleUI.skillBtn.classList.add('ready');
+                    break;
+            }
+        }
     }
 
     function nextBattleTurn() {
-        // 第三關怪物與 Boss 戰使用逆向問題
         const isReverseQuestion = battleState.isBoss || (!battleState.isBoss && battleState.enemyStage === 2);
         
-        // 如果是第二關怪物，啟動計時器
         if (!battleState.isBoss && battleState.enemyStage === 1) {
             startBattleTimer();
         }
@@ -918,108 +955,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(damage, isSkill = false) {
-        battleState.enemyHP = Math.max(0, battleState.enemyHP - damage);
-        showDamagePopup(document.getElementById('enemy-container'), damage, isSkill);
+        const actualDamage = isSkill ? 5 : 1;
+
+        battleState.enemyHP = Math.max(0, battleState.enemyHP - actualDamage);
+        showDamagePopup(document.getElementById('enemy-container'), actualDamage, isSkill);
         battleUI.player.style.animation = isSkill ? 'special-attack 0.8s' : 'attack 0.5s';
         battleUI.enemy.classList.add('damage-anim');
         updateHPBars();
     }
 
-    function enemyAttack(damage) {
-        console.log(`敵人攻擊！造成傷害: ${damage}`); // <-- 加入這一行
-        battleState.playerHP = Math.max(0, battleState.playerHP - damage);
-        console.log(`玩家剩餘血量 (變數): ${battleState.playerHP}`); // <-- 加入這一行
-        showDamagePopup(document.getElementById('player-container'), damage);
+    function enemyAttack() {
+        const actualDamage = 1;
+
+        battleState.playerHP = Math.max(0, battleState.playerHP - actualDamage);
+        showDamagePopup(document.getElementById('player-container'), actualDamage);
         battleUI.enemy.classList.add('attack-anim');
         battleUI.player.classList.add('damage-anim');
         updateHPBars();
-    }    
+    }
 
     function checkBattleAnswer(selectedValue, btnElement, isReverse) {
-            clearInterval(battleTimerInterval);
-            battleUI.options.style.pointerEvents = 'none';
-            battleUI.skillBtn.style.pointerEvents = 'none';
-            
-            const correctAnswer = isReverse ? `${currentQuestion.num1} x ${currentQuestion.num2}` : currentQuestion.answer;
-            const isCorrect = selectedValue == correctAnswer;
-    
-            if (battleState.skillShotActive) {
-                if (isCorrect) {
-                    playerAttack(5, true);
-                } else {
-                    // 必殺技失敗！觸發畫面震動
-                    battleUI.screen.classList.add('screen-shake');
-                }
-                battleState.combo = 0;
-                battleState.skillShotActive = false;
-                battleUI.question.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-                battleUI.skillBtn.textContent = '✨ 必殺技！';
+        clearInterval(battleTimerInterval);
+        battleUI.options.style.pointerEvents = 'none';
+        battleUI.skillBtn.style.pointerEvents = 'none';
+        
+        const correctAnswer = isReverse ? `${currentQuestion.num1} x ${currentQuestion.num2}` : currentQuestion.answer;
+        const isCorrect = selectedValue == correctAnswer;
+
+        if (battleState.skillShotActive) {
+            if (isCorrect) {
+                playerAttack(5, true);
             } else {
-                if (isCorrect) {
+                battleUI.screen.classList.add('screen-shake');
+            }
+            battleState.combo = 0;
+            battleState.skillShotActive = false;
+            battleUI.question.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+        } else {
+            if (isCorrect) {
+                if(battleState.isBoss && battleState.combo < 3) {
                     battleState.combo++;
-                    const damage = battleState.isBoss ? 1 : 20 + battleState.combo * 5;
-                    playerAttack(damage);
+                }
+                playerAttack();
+            } else {
+                battleState.combo = 0;
+                enemyAttack();
+            }
+        }
+        
+        updateComboMeter();
+
+        setTimeout(() => {
+            battleUI.player.style.animation = '';
+            battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
+            battleUI.screen.classList.remove('screen-shake');
+            battleUI.options.style.pointerEvents = 'auto';
+            battleUI.skillBtn.style.pointerEvents = 'auto';
+
+            if (battleState.playerHP <= 0) {
+                const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
+                showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
+            } else if (battleState.enemyHP <= 0) {
+                if(battleState.isBoss) {
+                    showResultModal('完全勝利！', '你擊敗了九九大魔王！', '你已是真正的乘法宗師！');
+                    return;
+                }
+                battleState.enemyStage++;
+                if (battleState.enemyStage >= MONSTERS.length) {
+                    showResultModal('完全勝利！', '你擊敗了所有怪物！', '你真是個乘法大師！');
                 } else {
                     battleState.combo = 0;
-                    const damage = battleState.isBoss ? 1 : 25;
-                    enemyAttack(damage);
+                    updateComboMeter();
+                    loadEnemy();
                 }
+            } else {
+                nextBattleTurn();
             }
-            
-            updateComboMeter();
+        }, 1000);
+    }
     
-            setTimeout(() => {
-                battleUI.player.style.animation = '';
-                battleUI.enemy.classList.remove('attack-anim', 'damage-anim');
-                battleUI.screen.classList.remove('screen-shake'); // 清除震動效果
-                battleUI.options.style.pointerEvents = 'auto';
-                battleUI.skillBtn.style.pointerEvents = 'auto';
-    
-                if (battleState.playerHP <= 0) {
-                    const enemyData = battleState.isBoss ? FINAL_BOSS : MONSTERS[battleState.enemyStage];
-                    showResultModal('挑戰失敗', `你被${enemyData.name}打敗了！`, '再多練習一下吧！');
-                } else if (battleState.enemyHP <= 0) {
-                    if(battleState.isBoss) {
-                        showResultModal('完全勝利！', '你擊敗了九九大魔王！', '你已是真正的乘法宗師！');
-                        return;
-                    }
-                    battleState.enemyStage++;
-                    if (battleState.enemyStage >= MONSTERS.length) {
-                        showResultModal('完全勝利！', '你擊敗了所有怪物！', '你真是個乘法大師！');
-                    } else {
-                        battleState.combo = 0;
-                        updateComboMeter();
-                        loadEnemy();
-                    }
-                } else {
-                    nextBattleTurn();
-                }
-            }, 1000);
-        }
-
     function startBattleTimer() {
         clearInterval(battleTimerInterval);
         const timerUI = document.getElementById('battle-timer');
         let timeLeft = 10;
-        timerUI.textContent = `剩餘時間: ${timeLeft}`;
+        timerUI.textContent = `剩餘時間: ${timeLeft}秒`;
         timerUI.style.display = 'block';
         
-        // 確保選項可以點擊
         battleUI.options.style.pointerEvents = 'auto';
-        Array.from(battleUI.options.children).forEach(btn => btn.style.pointerEvents = 'auto');
-
 
         battleTimerInterval = setInterval(() => {
             timeLeft--;
-            timerUI.textContent = `剩餘時間: ${timeLeft}`;
+            timerUI.textContent = `剩餘時間: ${timeLeft}秒`;
             if (timeLeft <= 0) {
                 clearInterval(battleTimerInterval);
                 timerUI.textContent = "時間到！";
                 battleUI.options.style.pointerEvents = 'none';
 
-                // 時間到，觸發答錯的流程
-                const damage = 1;
-                enemyAttack(damage);
+                enemyAttack();
                 updateComboMeter();
 
                 setTimeout(() => {
@@ -1042,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         battleState.skillShotActive = true;
         battleUI.skillBtn.classList.remove('ready');
-        battleUI.skillBtn.textContent = '聚氣中...';
+        battleUI.skillBtn.textContent = '看招！';
         battleUI.question.style.boxShadow = '0 0 25px 10px var(--skill-btn-color)';
     });
 
@@ -1063,6 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.back-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             clearInterval(speedInterval);
+            clearInterval(battleTimerInterval);
             showScreen('map');
         });
     });
@@ -1081,3 +1114,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+�
